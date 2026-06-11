@@ -191,14 +191,24 @@ psql -U postgres -d controltrip -f sql/05_consultas.sql
 <table>
   <tr>
     <td align="center">
+      <img src="https://api.dicebear.com/9.x/avataaars/png?seed=Arthur&size=100" width="100"><br/>
+      <strong>Arthur Huf Coliselli</strong><br/>
+      Matrícula: 446863
+    </td>
+    <td align="center">
+      <img src="https://api.dicebear.com/9.x/avataaars/png?seed=Bruno&size=100" width="100"><br/>
+      <strong>Bruno Jandt</strong><br/>
+      Matrícula: 448409
+    </td>
+    <td align="center">
       <img src="https://api.dicebear.com/9.x/avataaars/png?seed=Rafael&size=100" width="100"><br/>
-      <strong>Nome do Aluno 1</strong><br/>
-      Matrícula: XXXXXXX
+      <strong>Rafael Hammes Feil</strong><br/>
+      Matrícula: 373989
     </td>
     <td align="center">
       <img src="https://api.dicebear.com/9.x/avataaars/png?seed=Simone&size=100" width="100"><br/>
-      <strong>Simone Aparecida</strong><br/>
-      Matrícula: XXXXXXX
+      <strong>Simone A. Trombini Perosso</strong><br/>
+      Matrícula: 350375
     </td>
   </tr>
 </table>
