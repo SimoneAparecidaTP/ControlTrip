@@ -122,9 +122,29 @@ INSERT INTO despesa (viagemid, categoriaid, data, pagamento, valor, anexo, obser
     (4, 3, '2026-05-28', 'CARTAO_CORPORATIVO', 220.00, '/anexos/recibo_hotel_4.pdf', 'Estadia Hotel Ibis Chapecó.'),
     (4, 4, '2026-05-29', 'REEMBOLSO', 150.00, '/anexos/nota_posto_4.pdf', 'Abastecimento veículo locado.'),
 
+    -- Despesas Viagem 5 (Felipe Santos - Pendente)
+    (5, 3, '2026-06-12', 'CARTAO_CORPORATIVO', 310.00, '/anexos/recibo_hotel_5.pdf', 'Reserva Hotel Curitiba.'),
+    (5, 2, '2026-06-12', 'REEMBOLSO', 88.00, '/anexos/recibo_passagem_5.pdf', 'Passagem aérea SMO–CWB.'),
+    (5, 1, '2026-06-13', 'REEMBOLSO', 67.00, '/anexos/nota_almoco_5.pdf', 'Almoço durante palestra.'),
+
     -- Despesas Viagem 8 (Ana Beatriz)
     (8, 3, '2026-05-18', 'CARTAO_CORPORATIVO', 380.00, '/anexos/recibo_hotel_8.pdf', 'Estadia em Porto Alegre.'),
     (8, 2, '2026-05-19', 'REEMBOLSO', 95.00, '/anexos/recibo_taxi_8.pdf', 'Táxi da regional para o hotel.'),
     (8, 1, '2026-05-20', 'REEMBOLSO', 62.00, '/anexos/nota_almoco_8.pdf', 'Refeição - Almoço.');
+
+-- 11. Viagem aprovada com início em junho/2026 — necessária para o Relatório 2
+-- (sem este registro, o Relatório 2 retorna zero linhas no mês atual)
+INSERT INTO viagem (funcionarioid, cidadeid, setorid, osid_os, moedaid, status, justificativa, data_criacao, data_fechamento, data_inicio_viagem, data_termino_fechamento) VALUES
+    (4, 5, 4, 2, 1, 'APROVADO', 'Auditoria financeira em Campinas.', '2026-06-03', '2026-06-30', '2026-06-18', '2026-06-22');
+-- viagem id=9 (Roberto de Alencar, Campinas/SP, Financeiro, OS-102, BRL)
+
+INSERT INTO viagem_funcionario (viagemid, funcionarioid) VALUES
+    (9, 4); -- Roberto de Alencar na viagem 9
+
+INSERT INTO despesa (viagemid, categoriaid, data, pagamento, valor, anexo, observacao) VALUES
+    (9, 3, '2026-06-18', 'CARTAO_CORPORATIVO', 260.00, '/anexos/recibo_hotel_9.pdf',    'Hotel Quality Campinas.'),
+    (9, 2, '2026-06-18', 'REEMBOLSO',           130.00, '/anexos/recibo_passagem_9.pdf', 'Passagem aérea SMO–VCP.'),
+    (9, 1, '2026-06-19', 'REEMBOLSO',            95.00, '/anexos/nota_almoco_9.pdf',     'Almoço de trabalho.'),
+    (9, 4, '2026-06-20', 'DINHEIRO',              55.00, '/anexos/nota_combustivel_9.pdf','Combustível veículo locado.');
 
 COMMIT;
