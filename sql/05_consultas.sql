@@ -1,113 +1,98 @@
 -- =============================================================
 -- BANCO DE DADOS I — ControlTrip
--- Script 05: Consultas / Relatórios
+-- NOVOS RELATÓRIOS SOLICITADOS
 -- =============================================================
 
 -- -------------------------------------------------------------
--- RELATÓRIO 1: Despesas Totais por Viagem
--- Mostra o custo total acumulado de cada viagem, detalhando o 
--- funcionário responsável, a cidade de destino, a moeda utilizada 
--- e o valor final convertido para a moeda nacional (BRL).
+-- RELATÓRIO 1 (ORDER BY / WHERE): Solicitações Pendentes
 -- -------------------------------------------------------------
 SELECT
-    v.id                                                            AS viagem_id,
+    v.id                                                            AS rdv_numero,
+    -- Nota: Se o seu banco tiver uma coluna para o 'solicitante' diferente do 'viajante',
+    -- substitua 'f.nome' abaixo pela coluna/join correspondente.
     f.nome                                                          AS funcionario_solicitante,
-    c.nome                                                          AS cidade_destino,
-    est.uf                                                          AS uf_destino,
-    v.status                                                        AS status_viagem,
-    m.unidade_monetaria                                             AS moeda_original,
-    COALESCE(SUM(d.valor), 0)                                       AS total_moeda_original,
-    m.cotacao_conversao                                             AS taxa_cambio,
-    ROUND(COALESCE(SUM(d.valor), 0) * m.cotacao_conversao, 2)       AS total_convertido_brl
+    f.nome                                                          AS funcionario_viajante,
+    v.justificativa,
+    v.data_inicio_viagem                                            AS data_solicitacao, -- Adaptado (use a coluna real de solicitação se houver)
+    ROUND(COALESCE(SUM(d.valor * m.cotacao_conversao), 0), 2)       AS valor_total_solicitado
 FROM viagem v
 JOIN funcionario f  ON f.id = v.funcionarioid
-JOIN cidade c       ON c.id = v.cidadeid
-JOIN estado est     ON est.id = c.estadoid
-JOIN moeda m        ON m.id = v.moedaid
 LEFT JOIN despesa d ON d.viagemid = v.id
-GROUP BY v.id, f.nome, c.nome, est.uf, v.status, m.unidade_monetaria, m.cotacao_conversao
-ORDER BY total_convertido_brl DESC;
+LEFT JOIN moeda m   ON m.id = v.moedaid
+WHERE v.status = 'PENDENTE' -- Ajustar para o termo exato do seu banco (ex: 'Pendente de Aprovação')
+GROUP BY v.id, f.nome, v.justificativa, v.data_inicio_viagem
+ORDER BY data_solicitacao ASC;
+
 
 -- -------------------------------------------------------------
--- RELATÓRIO 2: Viagens por Funcionário e Setor
--- Lista todos os deslocamentos corporativos cadastrados no sistema, 
--- com o nome do funcionário responsável e seu respectivo setor,
--- permitindo auditar o volume de viagens por área da empresa.
+-- RELATÓRIO 2 (JOIN): RDVs Aprovados no Mês Atual
 -- -------------------------------------------------------------
 SELECT
-    s.nome                                                          AS setor_custo,
-    f.nome                                                          AS funcionario,
-    v.id                                                            AS viagem_id,
-    c.nome                                                          AS cidade_destino,
-    est.uf                                                          AS uf_destino,
-    v.data_inicio_viagem                                            AS inicio,
-    v.data_termino_fechamento                                       AS termino,
-    (v.data_termino_fechamento - v.data_inicio_viagem)              AS duracao_dias,
-    v.status                                                        AS status_viagem,
-    v.justificativa
+    v.id                                                            AS numero_rdv,
+    f.nome                                                          AS funcionario_solicitante, -- Adaptado
+    f.nome                                                          AS funcionario_viajante,
+    c.nome                                                          AS destino_viagem,
+    v.data_inicio_viagem                                            AS data_inicio,
+    v.data_termino_fechamento                                       AS data_retorno,
+    ROUND(COALESCE(SUM(d.valor * m.cotacao_conversao), 0), 2)       AS valor_aprovado
 FROM viagem v
 JOIN funcionario f  ON f.id = v.funcionarioid
-JOIN setor s        ON s.id = v.setorid
 JOIN cidade c       ON c.id = v.cidadeid
-JOIN estado est     ON est.id = c.estadoid
-ORDER BY s.nome, f.nome, v.data_inicio_viagem DESC;
+LEFT JOIN despesa d ON d.viagemid = v.id
+LEFT JOIN moeda m   ON m.id = v.moedaid
+WHERE v.status = 'APROVADO'
+  -- Filtro para o mês atual dinâmico (Ano 2026)
+  AND v.data_inicio_viagem >= DATE_TRUNC('month', CURRENT_DATE)
+  AND v.data_inicio_viagem < DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month'
+GROUP BY v.id, f.nome, c.nome, v.data_inicio_viagem, v.data_termino_fechamento
+ORDER BY data_inicio ASC;
+
 
 -- -------------------------------------------------------------
--- RELATÓRIO 3: Gastos por Categoria de Despesa
--- Apresenta de forma agregada a distribuição de gastos da empresa
--- por tipo de consumo (Alimentação, Hospedagem, etc.) convertidos 
--- para BRL, auxiliando no controle de orçamentos e auditoria.
+-- RELATÓRIO 3 (CORRIGIDO): Itens de Despesa (> R$ 50,00) de RDVs Aprovados
 -- -------------------------------------------------------------
 SELECT
-    cat.nome_da_categoria                                           AS categoria,
-    COUNT(d.id)                                                     AS quantidade_lancamentos,
-    ROUND(SUM(d.valor * m.cotacao_conversao), 2)                    AS custo_total_brl,
-    ROUND(AVG(d.valor * m.cotacao_conversao), 2)                    AS custo_medio_brl,
-    ROUND(
-        SUM(d.valor * m.cotacao_conversao) * 100.0 / 
-        SUM(SUM(d.valor * m.cotacao_conversao)) OVER (), 2
-    )                                                               AS percentual_representatividade
+    v.id                                                            AS numero_rdv,
+    f.nome                                                          AS nome_funcionario,
+    cat.nome_da_categoria                                           AS tipo_despesa,
+    cat.nome_da_categoria                                           AS descricao, -- Usando a categoria como descrição
+    m.unidade_monetaria                                             AS moeda_utilizada,
+    ROUND(d.valor * m.cotacao_conversao, 2)                         AS valor_convertido_reais
+FROM despesa d
+JOIN viagem v      ON v.id = d.viagemid
+JOIN funcionario f ON f.id = v.funcionarioid
+JOIN categoria cat ON cat.id = d.categoriaid
+JOIN moeda m       ON m.id = v.moedaid
+WHERE v.status = 'APROVADO'
+  -- Exibir apenas despesas com valor convertido superior a R$ 50,00
+  AND (d.valor * m.cotacao_conversao) > 50.00
+ORDER BY numero_rdv ASC, tipo_despesa ASC;
+
+
+-- -------------------------------------------------------------
+-- RELATÓRIO 4 (CORRIGIDO): Tipo de Despesa no Semestre Atual
+-- -------------------------------------------------------------
+SELECT
+    cat.nome_da_categoria                                           AS tipo_despesa,
+    COUNT(d.id)                                                     AS total_ocorrencias,
+    ROUND(SUM(d.valor * m.cotacao_conversao), 2)                    AS valor_total_gasto,
+    ROUND(AVG(d.valor * m.cotacao_conversao), 2)                    AS valor_medio_por_ocorrencia
 FROM despesa d
 JOIN categoria cat ON cat.id = d.categoriaid
 JOIN viagem v      ON v.id = d.viagemid
 JOIN moeda m       ON m.id = v.moedaid
+WHERE 
+    -- Lógica para o Semestre Atual:
+    -- Se o mês atual for de 1 a 6 (1º Semestre), filtra de Janeiro a Junho.
+    -- Se for de 7 a 12 (2º Semestre), filtra de Julho a Dezembro.
+    d.data >= CASE 
+                WHEN EXTRACT(MONTH FROM CURRENT_DATE) <= 6 THEN DATE_TRUNC('year', CURRENT_DATE)
+                ELSE DATE_TRUNC('year', CURRENT_DATE) + INTERVAL '6 months'
+              END
+  AND d.data < CASE 
+                WHEN EXTRACT(MONTH FROM CURRENT_DATE) <= 6 THEN DATE_TRUNC('year', CURRENT_DATE) + INTERVAL '6 months'
+                ELSE DATE_TRUNC('year', CURRENT_DATE) + INTERVAL '12 months'
+              END
 GROUP BY cat.id, cat.nome_da_categoria
-ORDER BY custo_total_brl DESC;
-
--- -------------------------------------------------------------
--- RELATÓRIO 4: Viagens por Status e Ordem de Serviço (OS)
--- Sumariza o total de viagens e seu progresso atual agrupados 
--- por projeto/contrato (Ordem de Serviço). Isso permite que gerentes 
--- controlem o andamento logístico de suas OS.
--- -------------------------------------------------------------
-SELECT
-    o.id_os                                                         AS os_codigo,
-    o.descricao                                                     AS os_descricao,
-    COUNT(v.id)                                                     AS total_viagens,
-    COUNT(v.id) FILTER (WHERE v.status = 'RASCUNHO')                AS em_rascunho,
-    COUNT(v.id) FILTER (WHERE v.status = 'PENDENTE')                AS pendentes_aprovacao,
-    COUNT(v.id) FILTER (WHERE v.status = 'APROVADO')                AS aprovadas_ativas,
-    COUNT(v.id) FILTER (WHERE v.status = 'CONCLUIDO')               AS concluidas,
-    COUNT(v.id) FILTER (WHERE v.status = 'REJEITADO')               AS rejeitadas
-FROM os o
-LEFT JOIN viagem v ON v.osid_os = o.id_os
-GROUP BY o.id_os, o.descricao
-ORDER BY total_viagens DESC, os_codigo;
-
--- -------------------------------------------------------------
--- RELATÓRIO 5: Despesas por Período Mensal e Moeda
--- Consolida os custos de viagens de forma temporal por mês, 
--- divididos por moeda de origem das despesas. Útil para conciliação 
--- de fluxo de caixa financeiro e compra de moeda estrangeira.
--- -------------------------------------------------------------
-SELECT
-    TO_CHAR(d.data, 'YYYY-MM')                                      AS mes_ano,
-    m.unidade_monetaria                                             AS moeda,
-    COUNT(d.id)                                                     AS quantidade_despesas,
-    SUM(d.valor)                                                    AS total_moeda_original,
-    ROUND(SUM(d.valor * m.cotacao_conversao), 2)                    AS total_convertido_brl
-FROM despesa d
-JOIN viagem v ON v.id = d.viagemid
-JOIN moeda m  ON m.id = v.moedaid
-GROUP BY TO_CHAR(d.data, 'YYYY-MM'), m.id, m.unidade_monetaria
-ORDER BY mes_ano DESC, moeda;
+HAVING COUNT(d.id) > 3 -- Apenas com mais de 3 ocorrências no período
+ORDER BY valor_total_gasto DESC;
