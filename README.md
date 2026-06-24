@@ -57,80 +57,7 @@ A modelagem de dados foi rigorosamente projetada seguindo as regras de normaliza
 
 ## Diagrama Entidade-Relacionamento
 
-```mermaid
-erDiagram
-    FUNCIONARIO {
-        serial id PK
-        char cpf UK
-        varchar nome
-    }
-    SETOR {
-        serial id PK
-        varchar nome UK
-    }
-    ESTADO {
-        serial id PK
-        varchar nome UK
-        char uf UK
-    }
-    CIDADE {
-        serial id PK
-        varchar nome
-        int estadoid FK
-    }
-    CATEGORIA {
-        serial id PK
-        varchar nome_da_categoria UK
-    }
-    MOEDA {
-        serial id PK
-        varchar unidade_monetaria UK
-        numeric cotacao_conversao
-    }
-    OS {
-        serial id_os PK
-        varchar descricao
-    }
-    VIAGEM {
-        serial id PK
-        int funcionarioid FK
-        int cidadeid FK
-        int setorid FK
-        int osid_os FK
-        int moedaid FK
-        varchar status
-        varchar justificativa
-        date data_criacao
-        date data_fechamento
-        date data_inicio_viagem
-        date data_termino_fechamento
-    }
-    VIAGEM_FUNCIONARIO {
-        int viagemid PK_FK
-        int funcionarioid PK_FK
-    }
-    DESPESA {
-        serial id PK
-        int viagemid FK
-        int categoriaid FK
-        date data
-        varchar pagamento
-        numeric valor
-        varchar anexo
-        varchar observacao
-    }
-
-    ESTADO ||--o{ CIDADE : "possui"
-    CIDADE ||--o{ VIAGEM : "destino de"
-    SETOR ||--o{ VIAGEM : "custeia"
-    OS ||--o{ VIAGEM : "demanda"
-    MOEDA ||--o{ VIAGEM : "financeia"
-    FUNCIONARIO ||--o{ VIAGEM : "solicita"
-    VIAGEM ||--o{ VIAGEM_FUNCIONARIO : "envolve"
-    FUNCIONARIO ||--o{ VIAGEM_FUNCIONARIO : "participa"
-    VIAGEM ||--o{ DESPESA : "gera"
-    CATEGORIA ||--o{ DESPESA : "classifica"
-```
+![Diagrama Entidade-Relacionamento — ControlTrip](docs/diagrama-er.png)
 
 > O modelo lógico relacional detalhado com justificativas de normalização está em [`docs/diagrama-relacional.md`](docs/diagrama-relacional.md).
 
@@ -151,6 +78,7 @@ erDiagram
 ```text
 ControlTrip/
 ├── docs/
+│   ├── diagrama-er.png          # Diagrama Entidade-Relacionamento visual
 │   ├── diagrama-relacional.md   # Modelo lógico, relações e normalização
 │   └── dicionario-de-dados.md   # Dicionário de dados completo das 10 tabelas
 └── sql/
